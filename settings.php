@@ -29,7 +29,11 @@ use core_payment\helper;
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
-    $settings->add(new admin_setting_heading('paygw_zarinpal_settings', '', get_string('pluginname_desc', 'paygw_zarinpal')));
+    $settings->add(new admin_setting_heading(
+        'paygw_zarinpal_settings',
+        '',
+        get_string('pluginname_desc', 'paygw_zarinpal')
+    ));
 
     helper::add_common_gateway_settings($settings, 'paygw_zarinpal');
 }

@@ -31,6 +31,8 @@ use external_api;
 use external_function_parameters;
 use external_single_structure;
 use external_value;
+use invalid_parameter_exception;
+use moodle_exception;
 use paygw_zarinpal\zarinpal_helper;
 
 defined('MOODLE_INTERNAL') || die();
@@ -74,8 +76,8 @@ class payment extends external_api {
      *               - url (string): The URL to redirect to for completing the payment.
      *               - message (string): Additional information or error message.
      *
-     * @throws \invalid_parameter_exception If the provided parameters are invalid.
-     * @throws \moodle_exception For errors during payment processing.
+     * @throws invalid_parameter_exception If the provided parameters are invalid.
+     * @throws moodle_exception For errors during payment processing.
      */
     public static function execute(string $component, string $paymentarea, int $itemid, string $description): array {
         // Validate the provided parameters.
@@ -87,7 +89,7 @@ class payment extends external_api {
         ]);
 
         // Load the gateway configuration for the given component and payment area.
-        $config = (object) helper::get_gateway_configuration($component, $paymentarea, $itemid, 'zarinpal');
+        $config = (object)helper::get_gateway_configuration($component, $paymentarea, $itemid, 'zarinpal');
 
         // Calculate the payment amount including any surcharges.
         $payable = helper::get_payable($component, $paymentarea, $itemid);

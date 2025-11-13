@@ -58,7 +58,6 @@ $response = process::execute($authority, $status);
 if ($response['success']) {
     notification::success($response['message']);
     redirect($response['url']);
-    die();
 }
 
 // If the payment failed, display an error message.

@@ -35,7 +35,7 @@ require_login();
 $component = required_param('component', PARAM_ALPHANUMEXT);
 $paymentarea = required_param('paymentarea', PARAM_ALPHANUMEXT);
 $itemid = required_param('itemid', PARAM_INT);
-$description = optional_param('description',  '', PARAM_TEXT);
+$description = optional_param('description', '', PARAM_TEXT);
 
 // Request payment from the payment class.
 $response = payment::execute($component, $paymentarea, $itemid, $description);

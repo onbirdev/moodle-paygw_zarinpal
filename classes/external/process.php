@@ -94,10 +94,10 @@ class process extends external_api {
         }
 
         // Load the gateway configuration for the specific payment context.
-        $config = (object) helper::get_gateway_configuration(
+        $config = (object)helper::get_gateway_configuration(
             $payment->component,
             $payment->payment_area,
-            (int) $payment->item_id,
+            (int)$payment->item_id,
             'zarinpal',
         );
 

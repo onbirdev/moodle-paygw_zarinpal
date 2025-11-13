@@ -79,7 +79,7 @@ class provider implements null_provider, paygw_provider {
         $record = $DB->get_record('paygw_zarinpal', ['payment_id' => $payment->id]);
 
         // Prepare the data for export.
-        $data = (object) [
+        $data = (object)[
             'authority' => $record->authority,
             'status' => $record->status,
             'data' => $record->data,

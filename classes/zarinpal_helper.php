@@ -135,7 +135,7 @@ class zarinpal_helper {
             'component' => $component,
             'payment_area' => $paymentarea,
             'item_id' => $itemid,
-            'user_id' => (int) $USER->id,
+            'user_id' => (int)$USER->id,
             'account_id' => $accountid,
             'merchant_id' => $this->merchantid,
             'amount' => $amount,
@@ -161,7 +161,7 @@ class zarinpal_helper {
             // Update the payment record with authority code.
             $DB->update_record(
                 'paygw_zarinpal',
-                (object) [
+                (object)[
                     'id' => $id,
                     'status' => self::STATUS_PENDING,
                     'authority' => $result->data->authority,
@@ -178,7 +178,7 @@ class zarinpal_helper {
         // Update the payment record in case of an error.
         $DB->update_record(
             'paygw_zarinpal',
-            (object) [
+            (object)[
                 'id' => $id,
                 'status' => self::STATUS_ERROR,
                 'data' => json_encode($result),
@@ -204,15 +204,15 @@ class zarinpal_helper {
     public function process_payment(stdClass $payment, string $status): array {
         global $DB;
 
-        $paymentdata = (object) [
+        $paymentdata = (object)[
             'status' => $status,
         ];
 
         // If the payment status is not 'OK', mark the payment as failed.
-        if ($status != 'OK') {
+        if ($status !== 'OK') {
             $DB->update_record(
                 'paygw_zarinpal',
-                (object) [
+                (object)[
                     'id' => $payment->id,
                     'status' => self::STATUS_ERROR,
                     'data' => json_encode($paymentdata),
@@ -232,9 +232,9 @@ class zarinpal_helper {
         if (method_exists($providerclass, 'can_deliver_order')) {
             $result = component_class_callback($providerclass, 'can_deliver_order', [
                 $payment->payment_area,
-                (int) $payment->item_id,
+                (int)$payment->item_id,
                 $payment->id,
-                (int) $payment->user_id,
+                (int)$payment->user_id,
             ]);
             if ($result !== true) {
                 return [
@@ -260,7 +260,7 @@ class zarinpal_helper {
         if (empty($result->data->code) || $result->data->code != 100) {
             $DB->update_record(
                 'paygw_zarinpal',
-                (object) [
+                (object)[
                     'id' => $payment->id,
                     'status' => self::STATUS_ERROR,
                     'code' => $result->data->code ?? 0,
@@ -291,7 +291,7 @@ class zarinpal_helper {
         // Update the ZarinPal payment record.
         $DB->update_record(
             'paygw_zarinpal',
-            (object) [
+            (object)[
                 'id' => $payment->id,
                 'payment_id' => $paymentid,
                 'status' => self::STATUS_COMPLETED,
@@ -306,15 +306,15 @@ class zarinpal_helper {
         payment_helper::deliver_order(
             $payment->component,
             $payment->payment_area,
-            (int) $payment->item_id,
+            (int)$payment->item_id,
             $paymentid,
-            (int) $payment->user_id,
+            (int)$payment->user_id,
         );
 
         $successurl = payment_helper::get_success_url(
             $payment->component,
             $payment->payment_area,
-            (int) $payment->item_id,
+            (int)$payment->item_id,
         );
 
         return [
