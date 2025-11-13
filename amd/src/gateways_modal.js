@@ -15,18 +15,16 @@
 
 import * as Repository from './repository';
 
-export const process = (component, paymentArea, itemId, description) => {
-    return new Promise(async(resolve, reject) => {
-        const payment = await Repository.payment(component, paymentArea, itemId, description);
+export const process = async(component, paymentArea, itemId, description) => {
+    const payment = await Repository.payment(component, paymentArea, itemId, description);
 
-        if (payment.success && payment.url) {
-            location.href = payment.url;
+    if (payment.success && payment.url) {
+        location.href = payment.url;
 
-            setTimeout(() => {
-                resolve(payment.message);
-            }, 1000);
-        } else {
-            reject(payment.message);
-        }
-    });
+        return new Promise(resolve => {
+            setTimeout(() => resolve(payment.message), 1000);
+        });
+    }
+
+    throw new Error(payment.message);
 };
