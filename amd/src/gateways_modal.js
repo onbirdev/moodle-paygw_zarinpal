@@ -16,7 +16,7 @@
 import * as Repository from './repository';
 
 export const process = (component, paymentArea, itemId, description) => {
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const payment = await Repository.payment(component, paymentArea, itemId, description);
 
         if (payment.success && payment.url) {
