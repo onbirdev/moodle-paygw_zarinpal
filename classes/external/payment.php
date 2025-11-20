@@ -88,6 +88,9 @@ class payment extends external_api {
             'description' => $description,
         ]);
 
+        $context = \context_system::instance();
+        self::validate_context($context);
+
         // Load the gateway configuration for the given component and payment area.
         $config = (object)helper::get_gateway_configuration($component, $paymentarea, $itemid, 'zarinpal');
 

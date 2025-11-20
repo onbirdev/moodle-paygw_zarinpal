@@ -84,6 +84,9 @@ class process extends external_api {
             'Status' => $status,
         ]);
 
+        $context = \context_system::instance();
+        self::validate_context($context);
+
         // Retrieve the payment record using the authority code.
         $payment = zarinpal_helper::get_payment($authority);
         if (!$payment) {
