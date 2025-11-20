@@ -26,12 +26,16 @@
 
 namespace paygw_zarinpal\privacy;
 
-use coding_exception;
 use context;
+use context_system;
 use core_payment\privacy\paygw_provider;
-use core_privacy\local\metadata\null_provider;
+use core_privacy\local\metadata\collection;
+use core_privacy\local\request\approved_contextlist;
+use core_privacy\local\request\approved_userlist;
+use core_privacy\local\request\contextlist;
+use core_privacy\local\request\core_userlist_provider;
+use core_privacy\local\request\userlist;
 use core_privacy\local\request\writer;
-use dml_exception;
 use stdClass;
 
 /**
@@ -41,35 +45,20 @@ use stdClass;
  * This class manages the export, deletion, and privacy-related functionality for
  * payment records associated with the ZarinPal payment gateway.
  */
-class provider implements null_provider, paygw_provider {
-    /**
-     * Get the language string identifier from the component's language file.
-     *
-     * This explains why this plugin does not store any user-related data
-     * for privacy compliance purposes.
-     *
-     * @return string The language string identifier for metadata privacy explanation.
-     */
-    public static function get_reason(): string {
-        return 'privacy:metadata';
-    }
-
+class provider implements
+    core_userlist_provider,
+    paygw_provider,
+    \core_privacy\local\metadata\provider,
+    \core_privacy\local\request\plugin\provider {
     /**
      * Export all user data for the specified payment record within the given context.
-     *
-     * This method retrieves payment-related data from the database and exports
-     * it to the appropriate location within the provided context.
      *
      * @param context $context The Moodle context for the data.
      * @param array $subcontext An array representing the location within the context.
      * @param stdClass $payment The payment record for which data is being exported.
-     *
      * @return void
-     *
-     * @throws coding_exception If there is a coding error.
-     * @throws dml_exception If there is a database-related issue.
      */
-    public static function export_payment_data(context $context, array $subcontext, stdClass $payment) {
+    public static function export_payment_data(context $context, array $subcontext, stdClass $payment): void {
         global $DB;
 
         // Add the plugin name to the subcontext for better categorization.
@@ -79,7 +68,7 @@ class provider implements null_provider, paygw_provider {
         $record = $DB->get_record('paygw_zarinpal', ['payment_id' => $payment->id]);
 
         // Prepare the data for export.
-        $data = (object)[
+        $data = (object) [
             'authority' => $record->authority,
             'status' => $record->status,
             'data' => $record->data,
@@ -92,20 +81,165 @@ class provider implements null_provider, paygw_provider {
     /**
      * Delete all user data related to the given payments.
      *
-     * This method deletes ZarinPal-related payment records from the database
-     * using a SQL query that selects the payment IDs.
-     *
      * @param string $paymentsql A SQL query that selects the `id` field for payments to delete.
      * @param array $paymentparams An array of parameters for the SQL query.
-     *
      * @return void
-     *
-     * @throws dml_exception If there is a database-related issue.
      */
-    public static function delete_data_for_payment_sql(string $paymentsql, array $paymentparams) {
+    public static function delete_data_for_payment_sql(string $paymentsql, array $paymentparams): void {
         global $DB;
 
         // Execute the delete operation on the ZarinPal payment table.
         $DB->delete_records_select('paygw_zarinpal', "payment_id IN ({$paymentsql})", $paymentparams);
+    }
+
+    /**
+     * Returns metadata about the data stored by the paygw_zarinpal plugin.
+     *
+     * @param collection $collection The metadata collection to add items to.
+     * @return collection Updated metadata collection.
+     */
+    public static function get_metadata(collection $collection): collection {
+        $collection->add_database_table(
+            'paygw_zarinpal',
+            [
+                'user_id' => 'privacy:metadata:paygw_zarinpal:user_id',
+            ],
+            'privacy:metadata:paygw_zarinpal',
+        );
+
+        return $collection;
+    }
+
+    /**
+     * Returns a list of contexts that contain user information for the specified user.
+     *
+     * @param int $userid The ID of the user whose data is being requested.
+     * @return contextlist
+     */
+    public static function get_contexts_for_userid(int $userid): contextlist {
+        $contextlist = new contextlist();
+        $contextlist->add_system_context();
+        return $contextlist;
+    }
+
+    /**
+     * Export all user data for the specified user within the system context.
+     *
+     * @param approved_contextlist $contextlist The list of contexts for which data is being exported.
+     * @return void
+     */
+    public static function export_user_data(approved_contextlist $contextlist): void {
+        global $DB;
+
+        $userid = $contextlist->get_user()->id;
+        $sql = "SELECT zp.*, p.component, p.paymentarea, p.itemid
+                FROM {paygw_zarinpal} zp
+                JOIN {payments} p ON p.id = zp.payment_id
+                WHERE zp.user_id = :user_id";
+        $params = ['user_id' => $userid];
+        $records = $DB->get_records_sql($sql, $params);
+
+        foreach ($records as $record) {
+            $context = context_system::instance();
+            $subcontext = [
+                get_string('pluginname', 'paygw_zarinpal'),
+                $record->component,
+                $record->paymentarea,
+                $record->itemid,
+            ];
+
+            $data = (object) [
+                'component' => $record->component,
+                'payment_area' => $record->payment_area,
+                'item_id' => $record->item_id,
+                'user_id' => $record->user_id,
+                'payment_id' => $record->payment_id,
+                'amount' => $record->amount,
+                'currency' => $record->currency,
+                'status' => $record->status,
+                'merchant_id' => $record->merchant_id,
+                'authority' => $record->authority,
+                'code' => $record->code,
+                'ref_id' => $record->ref_id,
+                'data' => $record->data,
+                'created_at' => $record->created_at,
+                'updated_at' => $record->updated_at,
+            ];
+
+            writer::with_context($context)->export_data($subcontext, $data);
+        }
+    }
+
+    /**
+     * Delete all user data for all users in the system context.
+     *
+     * @param context $context The system context.
+     * @return void
+     */
+    public static function delete_data_for_all_users_in_context(context $context): void {
+        global $DB;
+
+        if ($context->contextlevel !== CONTEXT_SYSTEM) {
+            return;
+        }
+
+        $DB->delete_records('paygw_zarinpal');
+    }
+
+    /**
+     * Delete all user data related to the given user.
+     *
+     * @param approved_contextlist $contextlist The context list containing the user whose data should be deleted.
+     * @return void
+     */
+    public static function delete_data_for_user(approved_contextlist $contextlist): void {
+        global $DB;
+
+        $userid = $contextlist->get_user()->id;
+        $DB->delete_records('paygw_zarinpal', ['user_id' => $userid]);
+    }
+
+    /**
+     * Retrieve and add users related to the current context to the user list.
+     *
+     * @param userlist $userlist The list of users to populate, based on the context.
+     * @return void
+     */
+    public static function get_users_in_context(userlist $userlist): void {
+        $context = $userlist->get_context();
+
+        if ($context->contextlevel !== CONTEXT_SYSTEM) {
+            return;
+        }
+
+        $sql = "SELECT DISTINCT zp.user_id
+                FROM {paygw_zarinpal} zp
+                JOIN {payments} p ON p.id = zp.payment_id";
+
+        $userlist->add_from_sql('user_id', $sql, []);
+    }
+
+    /**
+     * Deletes all user data related to the specified users.
+     *
+     * @param approved_userlist $userlist A list of approved users whose data should be deleted.
+     * @return void
+     */
+    public static function delete_data_for_users(approved_userlist $userlist): void {
+        global $DB;
+
+        $context = $userlist->get_context();
+
+        if ($context->contextlevel !== CONTEXT_SYSTEM) {
+            return;
+        }
+
+        $userids = $userlist->get_userids();
+        if (empty($userids)) {
+            return;
+        }
+
+        [$usersql, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        $DB->delete_records_select('paygw_zarinpal', "user_id {$usersql}", $userparams);
     }
 }
