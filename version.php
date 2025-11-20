@@ -27,7 +27,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'paygw_zarinpal';
-$plugin->version = 2025111401;
+$plugin->version = 2025112100;
 $plugin->requires = 2020110300;
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.2.0';
+$plugin->release = '1.3.0';
